@@ -1,0 +1,120 @@
+struct point2D{
+	int x, y;
+	point2D(){}
+	point2D(int _x, int _y){
+		x=_x;
+		y=_y;
+	}
+};
+
+struct line2D{
+	int xi, ymin, ymax;
+	double invslope;
+		line2D(){}
+		line2D(int x1, int y1, int x2, int y2){
+			double dx, dy;
+			if(y2<y1){
+				swap(y1, y2);
+				swap(x1, x2);
+			}
+			dy=y2-y1;
+			dx=x2-x1;
+			xi=x1;
+			ymin=y1;
+			ymax=y2;
+			if(abs(dy-0.0)>EPS) invslope=(dx/dy);
+			else invslope=0;
+	}
+};
+
+struct activeEdge{
+	int ymx;
+	double cx;
+	double invSlope; 
+	activeEdge(){}
+	activeEdge(line2D l){
+		ymx=l.ymax;
+		cx=l.xi;
+		invSlope=l.invslope;
+	}
+	void update(){
+		cx+=invSlope;
+	}
+};
+bool cmpEdge(activeEdge a, activeEdge b){
+	return a.cx<b.cx;
+}
+	
+bool cmpline(line2D a, line2D b){
+	return a.ymin<b.ymin;
+}
+struct polygon2D{
+	point2D ara[105];
+	int npoints;
+	polygon2D(){}
+	polygon2D(int n, point2D tmp[]){
+		npoints=n;
+		for(int i=0; i<npoints; i++){
+			ara[i]=tmp[i];
+		}
+	}
+	
+	line2D l[105];
+	
+	
+	
+	vector <activeEdge> prev, curr;
+	
+	
+	
+	void fill(){
+		int n=npoints;
+		int limy=-1000000000;
+		for(int i=0; i<(n-1); i++){
+			l[i]=line2D(ara[i].x, ara[i].y, ara[i+1].x, ara[i+1].y);  
+			limy=max(limy, ara[i].y);
+		}
+		l[n-1]=line2D(ara[n-1].x, ara[n-1].y, ara[0].x, ara[0].y);
+		limy=max(limy, ara[n-1].y);
+		sort(l, l+n, cmpline);
+		int it1=0;
+		int cy=l[0].ymin;
+		/*printf("The lines are:\n");
+		for(int i=0; i<3; i++){
+			printf("%d %d %d %f\n", l[i].xi, l[i].ymin, l[i].ymax, l[i].invslope); 
+		}*/
+		prev.clear();
+		while(cy<limy){
+			//cout<<"cy="<<cy<<endl;
+			while(it1<n && l[it1].ymin==cy){
+				curr.push_back(l[it1]);
+				//printf("Pushing line no %d\n", it1);
+				it1++;
+			}
+			for(int i=0; i<(int)prev.size(); i++){
+				if(prev[i].ymx==cy){
+					//printf("Popping line at ymax=%d\n", cy);
+					continue;
+				}
+				curr.push_back(prev[i]);
+				curr[curr.size()-1].update();
+			}
+			sort(curr.begin(), curr.end(), cmpEdge);
+			for(unsigned int i=0; (i+1)<(curr.size()); i+=2){
+				for(int j=curr[i].cx; j<curr[i+1].cx; j++){
+					//printf("%d %d\n", j, cy);
+					glBegin(GL_POINTS);
+					glColor3f(1.0, 1.0, 1.0);
+					glVertex2i((int) j, cy);
+					glEnd();
+				}
+			}
+			cy++;
+			prev.clear();
+			for(unsigned int i=0; i<curr.size(); i++){
+				prev.push_back(curr[i]);
+			}
+			curr.clear();
+		}
+	}
+};

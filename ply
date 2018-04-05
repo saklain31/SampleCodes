@@ -1,0 +1,38 @@
+0.4 
+0.3 
+0.7
+
+-0.3
+-0.5
+-0.2
+
+0.2
+0.1
+0.4
+
+0.4
+-0.3
+-0.5
+
+0.2
+-0.4
+0.1
+
+ply cow
+format ascii 1.0
+element vertex 2903
+property float32 x
+property float32 y
+property float32 z
+element face 5804
+property list uint8 int32 vertex_indices
+end_header
+
+
+2
+2903
+5804
+
+1
+1335
+2452

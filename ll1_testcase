@@ -1,0 +1,87 @@
+8
+E->TX
+X->+TX
+X->#
+T->FY
+Y->*FY
+Y->#
+F->(E)
+F->a
+
+E->TX
+X->+TX
+F->a
+X->#
+T->FY
+Y->*FY
+Y->#
+F->(E)
+
+S->ACB
+S->CbB
+S->Ba
+A->da
+A->BC
+B->g
+B->#
+C->h
+C->#
+
+A: d g h # 
+B: g # 
+C: h # 
+S: d g h b a #
+
+S->ACB
+S->CbB
+S->Ba
+A->da
+A->BC
+B->g
+B->#
+C->h
+C->#
+
+6
+S->AX
+S->c
+X->BS
+X->d
+A->e
+B->f
+
+first of S :c e 
+first of X :d f 
+first of A :e 
+first of B :f 
+follow of S :$ 
+follow of X :$ 
+follow of A :d f 
+follow of B :c e 
+
+11
+S->CBE
+S->f
+S->g
+E->BE
+E->d
+E->#
+B->p
+E->q
+C->r
+C->SC
+C->#
+
+6
+S->aXd
+X->YZ
+Y->b
+Y->#
+Z->cX
+Z->#
+
+4
+X->YaZ
+Y->eYZ
+Z->ac
+Y->#

@@ -8,6 +8,17 @@ Y->#
 F->(E)
 F->a
 
+3
+S->AA
+A->aA
+A->b
+
+3
+S->aA
+A->bA
+A->#
+
+
 E->TX
 X->+TX
 F->a

@@ -124,6 +124,9 @@ char st[100];
 int gram=0;
 map < char ,pair <char,int> > stable[100];
 map <char ,int > gtable[100];
+vector<int> derive;
+
+
 void calculateClosure(int idx, production el);
 
 int makeNonTerm(char t)
@@ -374,8 +377,9 @@ void Table(int idx)
 			for(lookit=p.lookahead.begin();lookit!=p.lookahead.end();lookit++)
 			{
 				stable[idx][*lookit] = pair<char,int> ('r',id);
-				printf("temp stable[%d][%c]=(%c,%d)\n",idx,*lookit, stable[idx][*lookit].first,stable[idx][*lookit].second);
-				printf("stable[%d][%c]=(%c,%d)\n", idx, *lookit, 'r', id);
+				//printf("temp stable[%d][%c]=(%c,%d)\n",idx,*lookit, stable[idx][*lookit].first,stable[idx][*lookit].second);
+				//printf("stable[%d][%c]=(%c,%d)\n", idx, *lookit, 'r', id);
+				printf("State %d on %c *REDUCE* using production %d\n",idx,*lookit,id);
 			}
 		}
 		else if(p.prod[1]=='#')
@@ -385,8 +389,9 @@ void Table(int idx)
 			for(lookit=p.lookahead.begin();lookit!=p.lookahead.end();lookit++)
 			{
 				stable[idx][*lookit] = pair<char,int> ('r',id);
-				printf("temp stable[%d][%c]=(%c,%d)\n",idx,*lookit, stable[idx][*lookit].first,stable[idx][*lookit].second);
-				printf("stable[%d][%c]=(%c,%d)\n", idx, *lookit, 'r', id);
+				//printf("temp stable[%d][%c]=(%c,%d)\n",idx,*lookit, stable[idx][*lookit].first,stable[idx][*lookit].second);
+				//printf("stable[%d][%c]=(%c,%d)\n", idx, *lookit, 'r', id);
+				printf("State %d on %c *REDUCE* using production %d\n",idx,*lookit,id);
 			}
 		}
 	}
@@ -421,7 +426,8 @@ void Table(int idx)
 		}
 
 		stable[idx][c] = pair<char,int> ('s',in);
-		printf("stable[%d][%c]=(%c,%d)\n",idx,c,'s',in);
+		//printf("stable[%d][%c]=(%c,%d)\n",idx,c,'s',in);
+		printf("State %d on %c *SHIFT* and change State to %d\n",idx,c,in);
 		if(in==canItemcnt) 
 		{
 			canItemcnt++;
@@ -463,7 +469,8 @@ void Table(int idx)
 
 		gtable[idx][c] = in;
 
-		printf("gtable %d %c %d\n",idx,c,in);
+		//printf("gtable %d %c %d\n",idx,c,in);
+		printf("State %d on %c *GO TO* State %d\n",idx,c,in);
 		if(in==canItemcnt) 
 		{
 			canItemcnt++;
@@ -552,7 +559,8 @@ void calculateCanonical()
 	calculateClosure(0,element[0]);
 	canItemcnt++;
 
-	
+	printf("LR(1) PARSING TABLE\n");
+	printf("*****************\n");	
 	Table(0);
 
 
@@ -564,15 +572,33 @@ void calculateCanonical()
 //map <char ,int > :: iterator itg;
 void printStack()
 {
+	printf("stack:");
 	for(int i=0;i<stck.size();i++)
 	{
 		printf("%c ",stck[i]);
 	}
 	printf("\n");
 }
+
+void printDerivation()
+{
+	printf("*************\n");
+	printf("Derivation\n");
+	printf("*************\n");
+	for(int i=derive.size()-1;i>=0;i--)
+	{
+		for(int j=0;j<element[derive[i]].prod.size();j++)
+		{
+			printf("%c",element[derive[i]].prod[j]);
+			if(j==0) printf("->");
+		}
+		printf("\n");
+	}
+}
+
 void derivation()
 {
-
+	printf("Enter String:\n");
 	scanf("%s",st);
 	strcat(st,"$");
 	stck.push_back(0+'0');
@@ -599,24 +625,26 @@ void derivation()
 		if(stable[currIdx].find(currChar)!=stable[currIdx].end() && stable[currIdx][currChar].first=='s')
 		{
 			
-			printf("shift\n");
+			//printf("shift\n");
 			stck.push_back(currChar);
 			printf("pushing %c\n",currChar );
 			stck.push_back(stable[currIdx][currChar].second+'0');
-			printf("pushing %c\n",stable[currIdx][currChar].second+'0' );
+			printf("pushing %c\n",stable[currIdx][currChar].second+'0');
 			stIdx++;
 			printStack();
 			//currChar=st[stIdx];
 		}
 		else if(stable[currIdx].find(currChar)!=stable[currIdx].end() && stable[currIdx][currChar].first=='r')
 		{
-			printf("reduce\n");
+			//printf("reduce\n");
 			int len = element[stable[currIdx][currChar].second].prod.size()-1;
 			int currNon = element[stable[currIdx][currChar].second].prod[0];
-		
+
+			derive.push_back(stable[currIdx][currChar].second);
+
 			if(element[stable[currIdx][currChar].second].prod[1]!='#')
 			{
-				printf("epsilon\n");
+				//printf("epsilon\n");
 				for(int i=0;i<len*2;i++)
 				{
 					printf("poping %c\n",stck.back());
@@ -628,10 +656,10 @@ void derivation()
 			currIdx=stck.back()-'0';
 
 			int p= stck.back();
-			printf("CurrIdx CurrNon %d %c\n",currIdx,currNon );
+			//printf("CurrIdx CurrNon %d %c\n",currIdx,currNon );
 			if(gtable[currIdx].find(currNon)!=gtable[currIdx].end())
 			{
-				printf("GoTo\n");
+				//printf("GoTo\n");
 				int next=gtable[currIdx][currNon];
 				stck.push_back(currNon);
 				printf("pushing %c\n",currNon);
@@ -647,7 +675,7 @@ void derivation()
 			{
 				break;
 				printf("%c\n",stck.back());
-				printf("LAST: %d %c %c %d\n",currIdx,currChar,stable[currIdx][currChar].first,stable[currIdx][currChar].second);
+				//printf("LAST: %d %c %c %d\n",currIdx,currChar,stable[currIdx][currChar].first,stable[currIdx][currChar].second);
 
 			}
 		}
@@ -655,19 +683,53 @@ void derivation()
 		{
 			//stable[currIdx].find(currChar)!=stable[currIdx].end() && stable[currIdx][currChar].first=='r'
 			printf("..%c\n",stck.back());
-			printf("currChar %c\n",currChar);
-			printf("LAST: %d %c %c %d\n",currIdx,currChar,stable[currIdx][currChar].first,stable[currIdx][currChar].second);
+			//printf("currChar %c\n",currChar);
+			//printf("LAST: %d %c %c %d\n",currIdx,currChar,stable[currIdx][currChar].first,stable[currIdx][currChar].second);
 			break;
 		}
 	}
-	printf("top: %c\n",stck.back());
+	//printf("top: %c\n",stck.back());
 	printStack();
 	if(ac==1)
+	{
 		printf("Accepted\n");
+		printDerivation();
+	}
 	else
 		printf("Not Accepted\n");
 }
 
+void printCanItems()
+{
+	printf("******************\n");
+	printf("Canonical Items\n");
+	printf("******************\n");
+	set <production> :: iterator it;
+	for(int looper=0; looper<canItemcnt; looper++)
+	{
+		printf("\n*Node no %d*\n", looper);
+		for(it=canNode[looper].prodItems.begin();it!=canNode[looper].prodItems.end();it++)
+		{
+			printf("\n");
+			production tmp=*it;
+			for(int j=0;j<tmp.prod.size();j++)
+			{
+				printf("%c ",tmp.prod[j]);
+				if(j==0) printf("->");
+			}
+			printf("\n");
+			printf("dot=%d\n",tmp.dot);
+			printf("lookahead:");
+			set <char> :: iterator it2;
+			for(it2=tmp.lookahead.begin();it2!=tmp.lookahead.end();it2++)
+			{
+				printf(" %c ",(*it2));
+			}
+			printf("\n");
+		}
+		printf("**************\n");
+	}
+}
 main()
 {
 	for(char a='a';a<='z';a++)
@@ -741,30 +803,8 @@ main()
 
 	calculateCanonical();
 
-	set <production> :: iterator it;
-	for(int looper=0; looper<canItemcnt; looper++)
-	{
-		printf("\n\nNode no %d\n", looper);
-		for(it=canNode[looper].prodItems.begin();it!=canNode[looper].prodItems.end();it++)
-		{
-			printf("*\n");
-			production tmp=*it;
-			for(int j=0;j<tmp.prod.size();j++)
-			{
-				printf("%c ",tmp.prod[j]);
-			}
-			printf("\n");
-			printf("dot=%d\n",tmp.dot);
-			printf("lookahead:");
-			set <char> :: iterator it2;
-			for(it2=tmp.lookahead.begin();it2!=tmp.lookahead.end();it2++)
-			{
-				printf(" %c ,",(*it2));
-			}
-			printf("\n");
-		}
-	}
-
+	printCanItems();
+	
 	derivation();
 
 

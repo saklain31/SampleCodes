@@ -18,6 +18,18 @@ S->aA
 A->bA
 A->#
 
+a+a
+E->TX
+T->FY
+F->a
+Y->#
+X->+TX
+T->FY
+F->a
+Y->#
+X->#
+
+
 
 E->TX
 X->+TX

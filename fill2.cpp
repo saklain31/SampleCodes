@@ -52,19 +52,10 @@ struct line2D{
 	}
 };
 
-struct activeEdge{
-	int ymx;
-	double cx;
-	double invSlope; 
-	activeEdge(){}
-	activeEdge(line2D l){
-		ymx=l.ymax;
-		cx=l.xi;
-		invSlope=l.invslope;
-	}
-	
-		int inx, ymax;
-	double slopeInverse;
+struct active
+{
+	int  ymax;
+	double inx, slopeInverse;
 	active(){};
 	active(line2D line)
 	{
@@ -72,87 +63,85 @@ struct activeEdge{
 		ymax=line.ymax;
 		slopeInverse=line.invslope;
 	}
-
 };
-bool cmpEdge(activeEdge a, activeEdge b){
-	return a.cx<b.cx;
+
+bool compareline(line2D a,line2D b)
+{
+	if(a.ymin<b.ymin) return true;
+	else return false;
 }
-	
-bool cmpline(line2D a, line2D b){
-	return a.ymin<b.ymin;
+
+bool sortLine(active a,active b)
+{
+	if(a.inx<b.inx) return true;
+	else return false;
 }
-struct polygon2D{
-	point2D ara[105];
-	int npoints;
-	polygon2D(){}
-	polygon2D(int n, point2D tmp[]){
-		npoints=n;
-		for(int i=0; i<npoints; i++){
-			ara[i]=tmp[i];
+struct polygon
+{
+	line2D line[10];
+	int currY;
+	int lineCount;
+	polygon(){};
+	polygon(int n,point2D p[])
+	{
+		for(int i=0;i<n;i++)
+		{
+			line[i]=line2D(p[i].x,p[i].y,p[(i+1)%n].x,p[(i+1)%n].y);
 		}
+		lineCount=n;
 	}
-	
-	line2D l[105];
-	
-	
-	
-	vector <activeEdge> prev, curr;
-	
-	
-	
-	void fill(){
-		int n=npoints;
-		int limy=-1000000000;
-		for(int i=0; i<(n-1); i++){
-			l[i]=line2D(ara[i].x, ara[i].y, ara[i+1].x, ara[i+1].y);  
-			limy=max(limy, ara[i].y);
+
+	void color()
+	{
+		sort(line,line+lineCount,compareline);
+		int ymax=-10000;
+		for(int i=0;i<lineCount;i++)
+		{
+			if(line[i].ymax>ymax) ymax=line[i].ymax;
 		}
-		l[n-1]=line2D(ara[n-1].x, ara[n-1].y, ara[0].x, ara[0].y);
-		limy=max(limy, ara[n-1].y);
-		sort(l, l+n, cmpline);
-		int it1=0;
-		int cy=l[0].ymin;
-		/*printf("The lines are:\n");
-		for(int i=0; i<3; i++){
-			printf("%d %d %d %f\n", l[i].xi, l[i].ymin, l[i].ymax, l[i].invslope); 
-		}*/
-		prev.clear();
-		while(cy<limy){
-			//cout<<"cy="<<cy<<endl;
-			while(it1<n && l[it1].ymin==cy){
-				curr.push_back(l[it1]);
-				//printf("Pushing line no %d\n", it1);
-				it1++;
-			}
-			for(int i=0; i<(int)prev.size(); i++){
-				if(prev[i].ymx==cy){
-					//printf("Popping line at ymax=%d\n", cy);
-					continue;
-				}
-				curr.push_back(prev[i]);
-				curr[curr.size()-1].update();
-			}
-			sort(curr.begin(), curr.end(), cmpEdge);
-			for(unsigned int i=0; (i+1)<(curr.size()); i+=2){
-				for(int j=curr[i].cx; j<curr[i+1].cx; j++){
-					//printf("%d %d\n", j, cy);
-					glBegin(GL_POINTS);
-					glColor3f(1.0, 1.0, 1.0);
-					glVertex2i((int) j, cy);
-					glEnd();
+
+		currY = line[0].ymin;
+		active cList[10],pList[10];
+		int pSize=0,cSize=0;
+		for(int i=currY;i<=ymax;i++)
+		{
+			for(int k=0 ;k<lineCount;k++)
+			{
+				if(i==line[k].ymin)
+				{
+					cList[cSize]=active(line[k]);
+					cSize++;
 				}
 			}
-			cy++;
-			prev.clear();
-			for(unsigned int i=0; i<curr.size(); i++){
-				prev.push_back(curr[i]);
+			for(int j=0;j<pSize;j++)
+			{
+				if(i!=pList[j].ymax) 
+				{
+					cList[cSize]=pList[j];
+					cList[cSize].inx+=cList[cSize].slopeInverse;
+					cSize++;
+				}
 			}
-			curr.clear();
+
+			sort(cList,cList+cSize,sortLine);
+			for(int j=0;(j+1)<cSize;j+=2)
+			{
+				drawline(cList[j].inx,i,cList[j+1].inx,i);
+			}
+			pSize=0;
+			for(int j=0;j<cSize;j++)
+			{
+				pList[j]=cList[j];
+				pSize++;
+			}
+			cSize=0;
 		}
+
+
 	}
 };
 
-polygon2D poly;
+polygon poly;
 point2D points[10];
 
 void restore()
@@ -456,6 +445,20 @@ void drawline(int xa, int ya, int xb , int yb)
 	x1=temp1, x2=temp2, yone=temp3, y2=temp4;
 }
 
+void inception2()
+{
+	
+	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+	point2D temp[105];
+
+    temp[0]=point2D(-100,-100);
+    temp[1]=point2D(100,100);
+    temp[2]=point2D(0,500);
+
+	polygon poly = polygon(3, temp);
+
+	poly.color();
+}
 void inception()
 {
 
@@ -598,8 +601,8 @@ void rotateZ()
 			helperZ(edge[i][k],k-1);
 		}
 		//helperZ(edge[i][k+1],k-1);
-		poly = polygon2D(edge[i][0],points);
-		poly.fill();
+		poly = polygon(edge[i][0],points);
+		poly.color();
 	}
 
 	
@@ -661,8 +664,8 @@ void rotateY()
 		//helperY(edge[i][k+1],edge[i][1],k);
 		//point2D p=point2D(edge[i][k+1],edge[i][0],p,k-1);
 
-		poly = polygon2D(edge[i][0],points);
-		poly.fill();
+		poly = polygon(edge[i][0],points);
+		poly.color();
 		//drawline((int)X[edge[i][k+1]],(int)Y[edge[i][k+1]],(int)X[edge[i][0]];,(int)Y[edge[i][0]]);
 
 	}
@@ -721,8 +724,8 @@ void rotateX()
 
 			//drawline((int)X[edge[i][k]],(int)Y[edge[i][k]],(int)X[edge[i][k+1]],(int)Y[edge[i][k+1]]);
 		}
-		poly = polygon2D(edge[i][0],points);
-		poly.fill();
+		poly = polygon(edge[i][0],points);
+		poly.color();
 		//helperX(edge[i][k+1],edge[i][0]);
 		//drawline((int)X[edge[i][k+1]],(int)Y[edge[i][k+1]],(int)X[edge[i][0]];,(int)Y[edge[i][0]]);
 	}

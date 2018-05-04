@@ -6,37 +6,39 @@
 using namespace std;
 
 #define PI 3.14159265
-#define EPS .00000001
+#define ZERO .00000001
 
 void inception();
 void drawline(int xa, int ya, int xb , int yb);
 void drawFigure();
 int degree=0,degree2=0,degree3=0;
 int edge[6000][10];
-//int line1[4], line2[4], line3[4], line4[4];
+double shadeVal=1.0;
+vector<double> src;
+
 int x1,x2,yone,y2;
 int n=0,m=0;
-float X[6000],Y[6000],Z[6000];
-float initX[6000];
-float initY[6000];
-float initZ[6000];
+double X[6000],Y[6000],Z[6000];
+double initX[6000];
+double initY[6000];
+double initZ[6000];
 
-float d=2500.0,l=1500.0;
+double d=2500.0,l=1500.0;
 
-struct point2D{
+struct vertex{
 	int x, y;
-	point2D(){}
-	point2D(int _x, int _y){
-		x=_x;
-		y=_y;
+	vertex(){}
+	vertex(int a, int b){
+		x=a;
+		y=b;
 	}
 };
 
-struct line2D{
-	int xi, ymin, ymax;
-	double invslope;
-		line2D(){}
-		line2D(int x1, int y1, int x2, int y2){
+struct polyEdge{
+	int xinit, ymin, ymax;
+	double slopeInverse;
+		polyEdge(){}
+		polyEdge(int x1, int y1, int x2, int y2){
 			double dx, dy;
 			if(y2<y1){
 				swap(y1, y2);
@@ -44,116 +46,106 @@ struct line2D{
 			}
 			dy=y2-y1;
 			dx=x2-x1;
-			xi=x1;
+			xinit=x1;
 			ymin=y1;
 			ymax=y2;
-			if(abs(dy-0.0)>EPS) invslope=(dx/dy);
-			else invslope=0;
+			if(abs(dy-0.0)>ZERO) slopeInverse=(dx/dy);
+			else slopeInverse=0;
 	}
 };
 
-struct activeEdge{
-	int ymx;
-	double cx;
-	double invSlope; 
-	activeEdge(){}
-	activeEdge(line2D l){
-		ymx=l.ymax;
-		cx=l.xi;
-		invSlope=l.invslope;
-	}
-	
-		int inx, ymax;
-	double slopeInverse;
+struct active
+{
+	int  ymax;
+	double inx, slopeInverse;
 	active(){};
-	active(line2D line)
+	active(polyEdge line)
 	{
-		inx=line.xi;
+		inx=line.xinit;
 		ymax=line.ymax;
-		slopeInverse=line.invslope;
-	}
-
-};
-bool cmpEdge(activeEdge a, activeEdge b){
-	return a.cx<b.cx;
-}
-	
-bool cmpline(line2D a, line2D b){
-	return a.ymin<b.ymin;
-}
-struct polygon2D{
-	point2D ara[105];
-	int npoints;
-	polygon2D(){}
-	polygon2D(int n, point2D tmp[]){
-		npoints=n;
-		for(int i=0; i<npoints; i++){
-			ara[i]=tmp[i];
-		}
-	}
-	
-	line2D l[105];
-	
-	
-	
-	vector <activeEdge> prev, curr;
-	
-	
-	
-	void fill(){
-		int n=npoints;
-		int limy=-1000000000;
-		for(int i=0; i<(n-1); i++){
-			l[i]=line2D(ara[i].x, ara[i].y, ara[i+1].x, ara[i+1].y);  
-			limy=max(limy, ara[i].y);
-		}
-		l[n-1]=line2D(ara[n-1].x, ara[n-1].y, ara[0].x, ara[0].y);
-		limy=max(limy, ara[n-1].y);
-		sort(l, l+n, cmpline);
-		int it1=0;
-		int cy=l[0].ymin;
-		/*printf("The lines are:\n");
-		for(int i=0; i<3; i++){
-			printf("%d %d %d %f\n", l[i].xi, l[i].ymin, l[i].ymax, l[i].invslope); 
-		}*/
-		prev.clear();
-		while(cy<limy){
-			//cout<<"cy="<<cy<<endl;
-			while(it1<n && l[it1].ymin==cy){
-				curr.push_back(l[it1]);
-				//printf("Pushing line no %d\n", it1);
-				it1++;
-			}
-			for(int i=0; i<(int)prev.size(); i++){
-				if(prev[i].ymx==cy){
-					//printf("Popping line at ymax=%d\n", cy);
-					continue;
-				}
-				curr.push_back(prev[i]);
-				curr[curr.size()-1].update();
-			}
-			sort(curr.begin(), curr.end(), cmpEdge);
-			for(unsigned int i=0; (i+1)<(curr.size()); i+=2){
-				for(int j=curr[i].cx; j<curr[i+1].cx; j++){
-					//printf("%d %d\n", j, cy);
-					glBegin(GL_POINTS);
-					glColor3f(1.0, 1.0, 1.0);
-					glVertex2i((int) j, cy);
-					glEnd();
-				}
-			}
-			cy++;
-			prev.clear();
-			for(unsigned int i=0; i<curr.size(); i++){
-				prev.push_back(curr[i]);
-			}
-			curr.clear();
-		}
+		slopeInverse=line.slopeInverse;
 	}
 };
 
-polygon2D poly;
-point2D points[10];
+bool compareline(polyEdge a,polyEdge b)
+{
+	if(a.ymin<b.ymin) return true;
+	else return false;
+}
+
+bool sortLine(active a,active b)
+{
+	if(a.inx<b.inx) return true;
+	else return false;
+}
+struct polygon
+{
+	polyEdge line[10];
+	int currY;
+	int lineCount;
+	polygon(){};
+	polygon(int n,vertex p[])
+	{
+		for(int i=0;i<n;i++)
+		{
+			line[i]=polyEdge(p[i].x,p[i].y,p[(i+1)%n].x,p[(i+1)%n].y);
+		}
+		lineCount=n;
+	}
+
+	void color()
+	{
+		sort(line,line+lineCount,compareline);
+		int ymax=-10000;
+		for(int i=0;i<lineCount;i++)
+		{
+			if(line[i].ymax>ymax) ymax=line[i].ymax;
+		}
+
+		currY = line[0].ymin;
+		active cList[10],pList[10];
+		int pSize=0,cSize=0;
+		for(int i=currY;i<=ymax;i++)
+		{
+			for(int k=0 ;k<lineCount;k++)
+			{
+				if(i==line[k].ymin)
+				{
+					cList[cSize]=active(line[k]);
+					cSize++;
+				}
+			}
+			for(int j=0;j<pSize;j++)
+			{
+				if(i!=pList[j].ymax) 
+				{
+					cList[cSize]=pList[j];
+					cList[cSize].inx+=cList[cSize].slopeInverse;
+					cSize++;
+				}
+			}
+
+			sort(cList,cList+cSize,sortLine);
+			for(int j=0;(j+1)<cSize;j+=2)
+			{
+				drawline(cList[j].inx,i,cList[j+1].inx,i);
+			}
+			pSize=0;
+			for(int j=0;j<cSize;j++)
+			{
+				pList[j]=cList[j];
+				pSize++;
+			}
+			cSize=0;
+		}
+
+
+	}
+};
+
+polygon poly;
+vertex points[10];
+
 
 void restore()
 {
@@ -209,13 +201,11 @@ void drawFigure()
 	{
 		for(k=1;k<edge[i][0];k++)
 		{
-			//drawline((int)X[edge[i][k]],(int)Y[edge[i][k]],(int)X[edge[i][k+1]],(int)Y[edge[i][k+1]]);
 			X[edge[i][k]]=initX[edge[i][k]];
 			Y[edge[i][k]]=initY[edge[i][k]];
 			X[edge[i][k+1]]=initX[edge[i][k+1]];
 			Y[edge[i][k+1]]=initY[edge[i][k+1]];
 		}
-		//drawline((int)X[edge[i][k+1]],(int)Y[edge[i][k+1]],(int)X[edge[i][0]],(int)Y[edge[i][0]]);
 		X[edge[i][k+1]]=initX[edge[i][k+1]];
 		Y[edge[i][k+1]]=initY[edge[i][k+1]];
 		X[edge[i][0]]=initX[edge[i][0]];
@@ -255,8 +245,8 @@ int findZone()
 void drawpoint(int x,int y)
 {
 	glBegin(GL_POINTS);
-	glColor3f(1.0,1.0,1.0);
-	//printf("x,y = %d %d\n",x,y );
+	if(shadeVal>=0)
+		glColor3f(1.0*shadeVal,1.0*shadeVal,1.0*shadeVal);
 	glVertex2i((int)x,(int)y);
 	glEnd();
 }
@@ -435,18 +425,8 @@ void draw(void)
 
 		drawline0(zone);
 	}
+}
 
-	//glFlush();
-}
-/*
-void drawAxis()
-{
-	glColor3f(0.9,0.7,0.6);
-	drawline(0,200,0,-200);
-	drawline(200,0,-200,0);
-	glColor3f(1,0.5,0.1);
-}
-*/
 void drawline(int xa, int ya, int xb , int yb)
 {
 	//printf("%d %d %d %d\n",xa,ya,xb,yb);
@@ -456,12 +436,31 @@ void drawline(int xa, int ya, int xb , int yb)
 	x1=temp1, x2=temp2, yone=temp3, y2=temp4;
 }
 
+void inception2()
+{
+	
+	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+	vertex temp[105];
+
+    temp[0]=vertex(-100,-100);
+    temp[1]=vertex(100,100);
+    temp[2]=vertex(0,500);
+
+	polygon poly = polygon(3, temp);
+
+	poly.color();
+}
 void inception()
 {
 
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
     glFlush();
     int t;
+
+    src.push_back(0);
+    src.push_back(0);
+    src.push_back(-2000);
+
     FILE *fp;
     //scanf("%d",&t);
     //if(t==1)
@@ -475,10 +474,10 @@ void inception()
 	//n=2903,m=5804;
 	for(int i=0;i<n;i++)
 	{
-		fscanf(fp,"%f %f %f",&X[i],&Y[i],&Z[i]);
-		//X[i]*=200;
-		//Y[i]*=200;
-		//Z[i]*=200;
+		fscanf(fp,"%lf %lf %lf",&X[i],&Y[i],&Z[i]);
+		/*X[i]*=200;
+		Y[i]*=200;
+		Z[i]*=200;*/
 
 		initX[i]=X[i];
 		initY[i]=Y[i];
@@ -488,22 +487,7 @@ void inception()
 	{
 		fscanf(fp,"%d %d %d %d",&edge[i][0],&edge[i][1],&edge[i][2],&edge[i][3]);
 	}
-
-	for(int i=0;i<m;i++)
-	{
-		//printf("%d %d %d %d\n",edge[i][0],edge[i][1],edge[i][2],edge[i][3]);
-	}
-
-	//drawline(10,-10,200,200);
 	translate();
-
-    /*drawAxis();
-	drawline(p1,p2,p1,p4);
-	drawline(p1,p2,p3,p2);
-	drawline(p3,p2,p3,p4);
-	drawline(p3,p4,p1,p4);
-	*/
-	//drawRandom();
 }
 
 void init(void)
@@ -519,14 +503,14 @@ void d_plus()
 {
 	restore();
 	d+=2;
-	//printf("d=%f\n",d );
+	//printf("d=%lf\n",d );
 	translate();
 }
 void d_minus()
 {
 	restore();
 	d-=2;
-	//printf("d=%f\n",d );
+	//printf("d=%lf\n",d );
 	translate();
 }
 
@@ -549,46 +533,104 @@ void x_minus()
 	translate();	
 }
 */
+
+vector<double> tempVal[100];
+int cnt=0;
+vector<double> cross;
+
+void crossProduct(vector<double> line1,vector<double> line2)
+{
+	double a=line1[1]*line2[2]-line2[1]*line1[2];
+	double b=line1[2]*line2[0]-line2[2]*line1[0];
+	double c=line1[0]*line2[1]-line2[0]*line1[1];
+
+	double val = a*a+b*b+c*c;
+	val=sqrt(val);
+
+	cross.push_back(a/val*1.0);
+	cross.push_back(b/val*1.0);
+	cross.push_back(c/val*1.0);
+}
+
+void calculateShadeVal(int count)
+{
+	double p=0,q=0,r=0;
+	for(int i=0;i<count;i++)
+	{
+		p+=tempVal[i][0];
+		q+=tempVal[i][1];
+		r+=tempVal[i][2];
+	}
+	p=p/count;
+	q=q/count;
+	r=r/count;
+
+	p = src[0] - p;
+	q = src[1] - q;
+	r = src[2] - r;
+
+	double val = p*p+q*q+r*r;
+	val= sqrt(val);
+
+	p= p/val;
+	q= q/val;
+	r= r/val;
+
+	double sh = p*cross[0] + q*cross[1] + r*cross[2];
+
+	shadeVal = sh;
+	printf("sh = %lf\n",shadeVal);
+
+}
+
+void shade(int count)
+{
+	vector<double> line1,line2;
+	
+	line1.push_back(tempVal[1][0]-tempVal[0][0]);
+	line1.push_back(tempVal[1][1]-tempVal[0][1]);
+	line1.push_back(tempVal[1][2]-tempVal[0][2]);
+
+	line2.push_back(tempVal[2][0]-tempVal[1][0]);
+	line2.push_back(tempVal[2][1]-tempVal[1][1]);
+	line2.push_back(tempVal[2][2]-tempVal[1][2]);
+
+	crossProduct(line1,line2);
+	
+	line1.clear();
+	line2.clear();
+
+	calculateShadeVal(count);
+
+	cross.clear();
+}
 void helperZ(int a, int idx)
 {
-	float sine = sin((degree3*PI*1.0)/(180*1.0));
-    float cosine = cos((degree3*PI*1.0)/(180*1.0));
+	double sine = sin((degree3*PI*1.0)/(180*1.0));
+    double cosine = cos((degree3*PI*1.0)/(180*1.0));
   
-	 X[a] =  initX[a]*cosine + initY[a]*(-1.0*sine);
-	 Y[a] =  initX[a]*sine + initY[a]*cosine;
+	X[a] =  initX[a]*cosine + initY[a]*(-1.0*sine);
+	Y[a] =  initX[a]*sine + initY[a]*cosine;
 
-	 //X[b] =  initX[b]*cosine + initY[b]*(-1.0*sine);
-	 //Y[b] =  initX[b]*sine + initY[b]*cosine;
-	 
+	X[a]=X[a]*1.0/(1+((Z[a]+l)*1.0/d*1.0));
+	Y[a]=Y[a]*1.0/(1+((Z[a]+l)*1.0/d*1.0));
 
-	 X[a]=X[a]*1.0/(1+((Z[a]+l)*1.0/d*1.0));
-	 Y[a]=Y[a]*1.0/(1+((Z[a]+l)*1.0/d*1.0));
-	 //X[b]=X[b]*1.0/(1+((Z[b]+l)*1.0/d*1.0));
-	 //Y[b]=Y[b]*1.0/(1+((Z[b]+l)*1.0/d*1.0));
+	tempVal[cnt].push_back(X[a]);
+	tempVal[cnt].push_back(Y[a]);
+	tempVal[cnt].push_back(Z[a]);
+	cnt++; 
 
-	//drawline((int) X[a],(int) Y[a],(int) X[b],(int) Y[b]);
+	points[idx]= vertex((int)X[a],(int)Y[a]);
 
-	points[idx]= point2D((int)X[a],(int)Y[a]);
-
-	 X[a]=initX[a];
-	 Y[a]=initY[a];
-	 Z[a]=initZ[a];
-
-	 //X[b]=initX[b];
-	 //Y[b]=initY[b];
-	 //Z[b]=initZ[b];
-
-	//printf("eikhane\n");
-	
-
+	X[a]=initX[a];
+	Y[a]=initY[a];
+	Z[a]=initZ[a];
 }
 
 void rotateZ()
 {
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-    
 
-    //drawAxis();
 	int k=0;
 	int i;
 	for(i=0; i<m;i++)
@@ -597,50 +639,38 @@ void rotateZ()
 		{
 			helperZ(edge[i][k],k-1);
 		}
-		//helperZ(edge[i][k+1],k-1);
-		poly = polygon2D(edge[i][0],points);
-		poly.fill();
-	}
 
-	
-	
+		shade(cnt);
+		
+		for(int k=0;k<cnt;k++)
+		{
+			tempVal[k].clear();
+		}
+		cnt=0;
+
+		poly = polygon(edge[i][0],points);
+		poly.color();
+	}
 	glFlush();
 	degree3--;
-
 }
 void helperY(int a,int idx)
 {
-	float sine = sin((degree2*PI*1.0)/(180*1.0));
-    float cosine = cos((degree2*PI*1.0)/(180*1.0));
+	double sine = sin((degree2*PI*1.0)/(180*1.0));
+    double cosine = cos((degree2*PI*1.0)/(180*1.0));
   
 	 X[a] =  initX[a]*cosine +  initZ[a]*sine;
 	 Y[a] =  initY[a];
 	 Z[a] =  initX[a]*(-1.0*sine) +  initZ[a]*cosine;
-	 /*X[b] =  initX[b]*cosine +  initZ[b]*sine;;
-	 Y[b] =  initY[b];
-	 Z[b] =  initX[b]*(-1.0*sine)+  initZ[b]*cosine;*/
 
 	 X[a]=X[a]*1.0/(1+((Z[a]+l)*1.0/d*1.0));
 	 Y[a]=Y[a]*1.0/(1+((Z[a]+l)*1.0/d*1.0));
-	 //X[b]=X[b]*1.0/(1+((Z[b]+l)*1.0/d*1.0));
-	 //Y[b]=Y[b]*1.0/(1+((Z[b]+l)*1.0/d*1.0));
-
-	//drawline((int) X[a],(int) Y[a],(int) X[b],(int) Y[b]);
-
-	//point2D point= point2D((int)X[a],(int)Y[a]);
-	points[idx]= point2D((int)X[a],(int)Y[a]);
+	 
+	points[idx]= vertex((int)X[a],(int)Y[a]);
 
 	 X[a]=initX[a];
 	 Y[a]=initY[a];
 	 Z[a]=initZ[a];
-
-	 //X[b]=initX[b];
-	 //Y[b]=initY[b];
-	 //Z[b]=initZ[b];
-
-	//printf("eikhane\n");
-	
-
 }
 
 void rotateY()
@@ -651,20 +681,12 @@ void rotateY()
 	int i;
 	for(i=0; i<m;i++)
 	{
-		//point2D p2d[10];
 		for(k=1;k<=edge[i][0];k++)
 		{
-			//point2D p= point2D(edge[i][k],edge[i][k+1]);
-			helperY(edge[i][k],k-1);
-			
+			helperY(edge[i][k],k-1);	
 		}
-		//helperY(edge[i][k+1],edge[i][1],k);
-		//point2D p=point2D(edge[i][k+1],edge[i][0],p,k-1);
-
-		poly = polygon2D(edge[i][0],points);
-		poly.fill();
-		//drawline((int)X[edge[i][k+1]],(int)Y[edge[i][k+1]],(int)X[edge[i][0]];,(int)Y[edge[i][0]]);
-
+		poly = polygon(edge[i][0],points);
+		poly.color();
 	}
 	glFlush();
 	degree2++;
@@ -672,43 +694,27 @@ void rotateY()
 }
 void helperX(int a, int idx)
 {
-	float sine = sin((degree3*PI*1.0)/(180*1.0));
-    float cosine = cos((degree3*PI*1.0)/(180*1.0));
+	double sine = sin((degree3*PI*1.0)/(180*1.0));
+    double cosine = cos((degree3*PI*1.0)/(180*1.0));
   
 	 X[a] =  initX[a];
 	 Y[a] =  initY[a]*cosine- initZ[a]*sine;
 	 Z[a] =  initY[a]*sine- initZ[a]*cosine;
 
-	 //X[b] =  initX[b];
-	 //Y[b] =  initY[b]*cosine- initZ[b]*sine;
-	 //Z[b] =  initY[b]*sine- initZ[b]*cosine;
-
 	 X[a]=X[a]*1.0/(1+((Z[a]+l)*1.0/d*1.0));
 	 Y[a]=Y[a]*1.0/(1+((Z[a]+l)*1.0/d*1.0));
 
-	 points[idx]= point2D((int)X[a],(int)Y[a]);
-	 //X[b]=X[b]*1.0/(1+((Z[b]+l)*1.0/d*1.0));
-	 //Y[b]=Y[b]*1.0/(1+((Z[b]+l)*1.0/d*1.0));
-
-	//drawline((int) X[a],(int) Y[a],(int) X[b],(int) Y[b]);
+	 points[idx]= vertex((int)X[a],(int)Y[a]);
 
 	 X[a]=initX[a];
 	 Y[a]=initY[a];
 	 Z[a]=initZ[a];
-
-	 //X[b]=initX[b];
-	 //Y[b]=initY[b];
-	 //Z[b]=initZ[b];
-
-
 }
 
 void rotateX()
 {
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-    ////glflush();
 
-    //drawAxis();
 	int k=0;
 	int i;
 
@@ -716,19 +722,12 @@ void rotateX()
 	{
 		for(k=1;k<=edge[i][0];k++)
 		{
-
 			helperX(edge[i][k],k-1);
-
-			//drawline((int)X[edge[i][k]],(int)Y[edge[i][k]],(int)X[edge[i][k+1]],(int)Y[edge[i][k+1]]);
 		}
-		poly = polygon2D(edge[i][0],points);
-		poly.fill();
-		//helperX(edge[i][k+1],edge[i][0]);
-		//drawline((int)X[edge[i][k+1]],(int)Y[edge[i][k+1]],(int)X[edge[i][0]];,(int)Y[edge[i][0]]);
+		poly = polygon(edge[i][0],points);
+		poly.color();
 	}
 
-	
-	
 	degree3++;
 	glFlush();
 }

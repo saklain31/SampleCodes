@@ -53,6 +53,27 @@ struct production
 	}
 
 
+	bool isEqualwithoutLookahead(production p)
+	{
+		if(prod.size()!=p.prod.size())
+		{
+			return false;
+		}
+		else
+		{
+			for(int i=0;i<p.prod.size();i++)
+			{
+				if(p.prod[i]!=prod[i]) return false;
+			}
+		}
+
+		if(dot != p.dot) return false;
+		
+		return true;
+	}
+
+
+
 	long long int hash()
 	{
 		long long val=0;
@@ -107,6 +128,37 @@ struct canItem
 		}
 		return true;
 	}
+
+	bool isEqualwithoutLookahead(canItem c)
+	{
+		int itcnt=0;
+		set<production> :: iterator iter1,iter2;
+
+		if(prodItems.size()!=c.prodItems.size())
+			return false;
+		else
+		{
+			for(iter1=prodItems.begin();iter1!=prodItems.end();iter1++)	
+			{
+				for(iter2=c.prodItems.begin();iter2!=c.prodItems.end();iter2++)
+				{
+					production p,q;
+					p=*iter1;
+					q=*iter2;
+					if(p.isEqualwithoutLookahead(q))
+					{
+
+						itcnt++;
+						break;
+					}
+				}
+			}
+		}
+		if(itcnt==prodItems.size())
+			return true;
+		else
+			return false;
+	}
 };
 
 production element[100];
@@ -124,8 +176,17 @@ char st[100];
 int gram=0;
 map < char ,pair <char,int> > stable[100];
 map <char ,int > gtable[100];
+map < char ,pair <char,int> > stable2[100];
+map <char ,int > gtable2[100];
 vector<int> derive;
 
+void iterate()
+{
+	for(auto el: stable[0])
+	{
+		cout << el.first << endl;
+	}
+}
 
 void calculateClosure(int idx, production el);
 
@@ -276,75 +337,7 @@ void duplication()
 		nonTerm[i].first.erase(std::unique(nonTerm[i].first.begin(), nonTerm[i].first.end()), nonTerm[i].first.end());
 	}
 }
-void duplication2()
-{
-	for(int i=0;i<nonTermcnt;i++)
-	{
-		sort(nonTerm[i].follow.begin(),nonTerm[i].follow.end());
-		nonTerm[i].follow.erase(std::unique(nonTerm[i].follow.begin(), nonTerm[i].follow.end()), nonTerm[i].follow.end());
-	}
-}
 
-void computeFollow(int id)
-{
-	if(!nonTerm[id].follow.empty() || tag[id])
-		return;
-	else if(id==0)
-		nonTerm[0].follow.push_back('$');
-
-	tag[id]=1;
-	int flag=0;
-	char val = nonTerm[id].ch;
-	for(int i=0;i<nonTermcnt;i++)
-	{
-		for(int j=0;j<nonTerm[i].count;j++)
-		{
-			for(int k=0;k<nonTerm[i].rhs[j].size();k++)
-			{
-				if(nonTerm[i].rhs[j][k]==val)
-				{
-					flag=0;
-					do
-					{
-						flag=0;
-						if((k+1)!=nonTerm[i].rhs[j].size())
-						{
-							k++;
-							if(nonTerm[i].rhs[j][k]>=65 && nonTerm[i].rhs[j][k]<=90)
-							{
-								int id2=computeIndex(nonTerm[i].rhs[j][k]);
-								for(int m=0;m<nonTerm[id2].first.size();m++)
-								{
-									if(nonTerm[id2].first[m]!='#')
-									{
-										nonTerm[id].follow.push_back(nonTerm[id2].first[m]);
-									}
-									else
-									{
-										flag=1;
-									}
-								}
-							}
-							else
-							{
-								nonTerm[id].follow.push_back(nonTerm[i].rhs[j][k]);
-							}
-						}
-						else
-						{
-							computeFollow(computeIndex(nonTerm[i].ch));
-							if(nonTerm[id].ch!=nonTerm[i].ch)
-							for(int l=0;l<nonTerm[i].follow.size();l++)
-							{
-								nonTerm[id].follow.push_back(nonTerm[i].follow[l]);
-							}
-						}
-					}while(flag==1);
-				}
-			}
-		}
-	}
-}
 int isProdEqual(production pd)
 {
 	for(int i=0;i<prodcount; i++)
@@ -377,9 +370,7 @@ void Table(int idx)
 			for(lookit=p.lookahead.begin();lookit!=p.lookahead.end();lookit++)
 			{
 				stable[idx][*lookit] = pair<char,int> ('r',id);
-				//printf("temp stable[%d][%c]=(%c,%d)\n",idx,*lookit, stable[idx][*lookit].first,stable[idx][*lookit].second);
-				//printf("stable[%d][%c]=(%c,%d)\n", idx, *lookit, 'r', id);
-				printf("State %d on %c *REDUCE* using production %d\n",idx,*lookit,id);
+				//printf("State %d on %c *REDUCE* using production %d\n",idx,*lookit,id);
 			}
 		}
 		else if(p.prod[1]=='#')
@@ -389,15 +380,14 @@ void Table(int idx)
 			for(lookit=p.lookahead.begin();lookit!=p.lookahead.end();lookit++)
 			{
 				stable[idx][*lookit] = pair<char,int> ('r',id);
-				//printf("temp stable[%d][%c]=(%c,%d)\n",idx,*lookit, stable[idx][*lookit].first,stable[idx][*lookit].second);
-				//printf("stable[%d][%c]=(%c,%d)\n", idx, *lookit, 'r', id);
-				printf("State %d on %c *REDUCE* using production %d\n",idx,*lookit,id);
+				//printf("State %d on %c *REDUCE* using production %d\n",idx,*lookit,id);
 			}
 		}
 	}
 
 	for(int i=0;i<termlist.size();i++)
 	{
+
 		char c = termlist[i];
 		int flag=0;
 		for(it=canNode[idx].prodItems.begin(); it!=canNode[idx].prodItems.end();it++)
@@ -426,8 +416,7 @@ void Table(int idx)
 		}
 
 		stable[idx][c] = pair<char,int> ('s',in);
-		//printf("stable[%d][%c]=(%c,%d)\n",idx,c,'s',in);
-		printf("State %d on %c *SHIFT* and change State to %d\n",idx,c,in);
+		//printf("State %d on %c *SHIFT* and change State to %d\n",idx,c,in);
 		if(in==canItemcnt) 
 		{
 			canItemcnt++;
@@ -470,7 +459,7 @@ void Table(int idx)
 		gtable[idx][c] = in;
 
 		//printf("gtable %d %c %d\n",idx,c,in);
-		printf("State %d on %c *GO TO* State %d\n",idx,c,in);
+		//printf("State %d on %c *GO TO* State %d\n",idx,c,in);
 		if(in==canItemcnt) 
 		{
 			canItemcnt++;
@@ -553,23 +542,13 @@ void calculateClosure(int idx, production el)
 void calculateCanonical()
 {
 	element[0].lookahead.insert('$');
-	//canNode[0].prodItems.insert(element[0]);
-
 
 	calculateClosure(0,element[0]);
 	canItemcnt++;
 
-	printf("LR(1) PARSING TABLE\n");
-	printf("*****************\n");	
 	Table(0);
-
-
 }
 
-//char st[100];
-//vector<char> stck;
-//map < char ,pair <char,int> > ::iterator its;
-//map <char ,int > :: iterator itg;
 void printStack()
 {
 	printf("stack:");
@@ -607,12 +586,12 @@ void derivation()
 
 	printf("%c\n",element[0].prod[1]);
 
-	if(stable[0].find(st[stIdx])!=stable[0].end()) 
+	if(stable2[0].find(st[stIdx])!=stable2[0].end()) 
 	{
 		stck.push_back(st[stIdx]);
 		printf("pushing %c\n",st[stIdx]);
-		stck.push_back(stable[0][st[stIdx]].second+'0');
-		printf("pushing %c\n",stable[0][st[stIdx]].second+'0' );
+		stck.push_back(stable2[0][st[stIdx]].second+'0');
+		printf("pushing %c\n",stable2[0][st[stIdx]].second+'0');
 		stIdx++;
 	}
 	printStack();
@@ -622,32 +601,31 @@ void derivation()
 		int currIdx=stck.back()-'0';
 		currChar=st[stIdx];	
 
-		if(stable[currIdx].find(currChar)!=stable[currIdx].end() && stable[currIdx][currChar].first=='s')
+		if(stable2[currIdx].find(currChar)!=stable2[currIdx].end() && stable2[currIdx][currChar].first=='s')
 		{
-			
-			//printf("shift\n");
 			stck.push_back(currChar);
 			printf("pushing %c\n",currChar );
-			stck.push_back(stable[currIdx][currChar].second+'0');
-			printf("pushing %c\n",stable[currIdx][currChar].second+'0');
+			stck.push_back(stable2[currIdx][currChar].second+'0');
+			printf("pushing %c\n",stable2[currIdx][currChar].second+'0');
 			stIdx++;
 			printStack();
-			//currChar=st[stIdx];
 		}
-		else if(stable[currIdx].find(currChar)!=stable[currIdx].end() && stable[currIdx][currChar].first=='r')
+		else if(stable2[currIdx].find(currChar)!=stable2[currIdx].end() && stable2[currIdx][currChar].first=='r')
 		{
-			//printf("reduce\n");
-			int len = element[stable[currIdx][currChar].second].prod.size()-1;
-			int currNon = element[stable[currIdx][currChar].second].prod[0];
+			int len = element[stable2[currIdx][currChar].second].prod.size()-1;
+			int currNon = element[stable2[currIdx][currChar].second].prod[0];
 
-			derive.push_back(stable[currIdx][currChar].second);
+			derive.push_back(stable2[currIdx][currChar].second);
 
-			if(element[stable[currIdx][currChar].second].prod[1]!='#')
+			if(element[stable2[currIdx][currChar].second].prod[1]!='#')
 			{
-				//printf("epsilon\n");
 				for(int i=0;i<len*2;i++)
 				{
+					//if(i%2==0)
+					//	printf("poping %c\n",stck.back()-'0');
+					//else
 					printf("poping %c\n",stck.back());
+
 					stck.pop_back();	
 				}
 			}
@@ -657,10 +635,10 @@ void derivation()
 
 			int p= stck.back();
 			//printf("CurrIdx CurrNon %d %c\n",currIdx,currNon );
-			if(gtable[currIdx].find(currNon)!=gtable[currIdx].end())
+			if(gtable2[currIdx].find(currNon)!=gtable2[currIdx].end())
 			{
 				//printf("GoTo\n");
-				int next=gtable[currIdx][currNon];
+				int next=gtable2[currIdx][currNon];
 				stck.push_back(currNon);
 				printf("pushing %c\n",currNon);
 				if(stck.back()==element[0].prod[1] && currChar=='$')
@@ -668,27 +646,21 @@ void derivation()
 					ac=1;
 				}
 				stck.push_back(next+'0');
-				printf("pushing %d %c\n",next, next+'0');
+				printf("pushing %c\n",next+'0');
 				printStack();
 			}
 			else 
 			{
 				break;
 				printf("%c\n",stck.back());
-				//printf("LAST: %d %c %c %d\n",currIdx,currChar,stable[currIdx][currChar].first,stable[currIdx][currChar].second);
-
 			}
 		}
 		else
 		{
-			//stable[currIdx].find(currChar)!=stable[currIdx].end() && stable[currIdx][currChar].first=='r'
 			printf("..%c\n",stck.back());
-			//printf("currChar %c\n",currChar);
-			//printf("LAST: %d %c %c %d\n",currIdx,currChar,stable[currIdx][currChar].first,stable[currIdx][currChar].second);
 			break;
 		}
 	}
-	//printf("top: %c\n",stck.back());
 	printStack();
 	if(ac==1)
 	{
@@ -698,6 +670,7 @@ void derivation()
 	else
 		printf("Not Accepted\n");
 }
+
 
 void printCanItems()
 {
@@ -730,6 +703,130 @@ void printCanItems()
 		printf("**************\n");
 	}
 }
+
+void LALRTable()
+{
+	printf("***Same Item pairs***\n");
+	set <int> rmvItems,rmvCanItems;
+	vector<int> itemPair[100];
+	int itemPaircnt=0;
+	int lalrItem=0;
+	for(int i=0;i<canItemcnt;i++)
+	{
+		if(rmvItems.find(i)!=rmvItems.end())
+		{
+			continue;
+		}
+		for(int j=0;j<canItemcnt;j++)
+		{
+			if(i!=j)
+			{
+				if(canNode[i].isEqualwithoutLookahead(canNode[j]))
+				{
+					rmvItems.insert(j);
+					itemPair[itemPaircnt].push_back(i);
+					itemPair[itemPaircnt].push_back(j);
+					printf("%d %d\n",i,j);
+					itemPaircnt++;
+				}
+			}
+		}
+	}
+
+	printf("****Removed Items****\n");
+	set<int> :: iterator iter;
+	for(iter=rmvItems.begin();iter!=rmvItems.end();iter++)
+	{
+		printf("%d ",*iter);
+	}
+	printf("\n");
+
+	map < char ,pair <char,int> > ::iterator iter1;
+	map <char ,int > ::iterator iter2;
+	map < char ,pair <char,int> > temp;
+
+	for(int i=0;i<canItemcnt;i++)
+	{
+		for(auto elem : stable[i])
+		{
+			int flag=0;
+			if(elem.second.first=='s')
+			{
+				for(int j=0;j<itemPaircnt;j++)
+				{	
+					if(elem.second.second==itemPair[j][0] || elem.second.second==itemPair[j][1])
+					{
+						stable2[i][elem.first] = make_pair('s',itemPair[j][0]);
+						flag=1;
+						//rmvCanItems.insert(itemPair[j][1]);
+					}
+				}
+				if(flag!=1)
+				{
+					stable2[i][elem.first]=make_pair('s',elem.second.second);
+				}
+			}
+			else if(elem.second.first=='r')
+			{
+				for(int j=0;j<itemPaircnt;j++)
+				{
+					if(i==itemPair[j][1] || i==itemPair[j][0])
+					{
+						stable2[itemPair[j][0]][elem.first]=make_pair('r',elem.second.second);
+						flag=1;
+					}
+				}
+				if(flag!=1)
+				{
+					stable2[i][elem.first]=make_pair('r',elem.second.second);
+				}
+			}
+			
+		}
+
+		for(auto elem: gtable[i])
+		{
+			int flag=0;
+			for(int j=0;j<itemPaircnt;j++)
+			{
+				if(elem.second==itemPair[j][0] || elem.second==itemPair[j][1])
+				{
+					gtable2[i][elem.first] = itemPair[j][0];
+					flag=1;
+				}
+			}
+			if(flag!=1)
+			{
+				gtable2[i][elem.first]= elem.second;
+			}
+		}
+
+	}
+
+	printf("***LALR PARSING TABLE***\n");
+	for(int i=0;i<canItemcnt;i++)
+	{
+		if(rmvItems.find(i)!=rmvItems.end()) continue;
+		for(auto elem : stable2[i])
+		{
+			//printf("stable2[%d][%c] = %c %d\n",i,elem.first,elem.second.first,elem.second.second);
+			if(elem.second.first=='s')
+			{
+				printf("State %d on %c *SHIFT* to state %d\n", i,elem.first,elem.second.second);
+			}
+			else if(elem.second.second=='r')
+			{
+				printf("State %d on %c *REDUCE* using production %d\n",i,elem.first,elem.second.second);	
+			}
+		}
+		for(auto elem : gtable2[i])
+		{
+			//printf("gtable2[%d][%c] = %d\n",i,elem.first,elem.second);
+			printf("State %d on %c *GOTO* state %d\n", i,elem.first,elem.second);
+		}
+	}
+}
+
 main()
 {
 	for(char a='a';a<='z';a++)
@@ -753,7 +850,7 @@ main()
 	duplication();
 	if(gram==1)
 	{
-		printf("NOT LR(1) GRAMMAR\n");
+		printf("NOT LL(1) GRAMMAR\n");
 		exit(0);
 	}
 	printf("\nLIST OF FIRST\n");
@@ -766,24 +863,6 @@ main()
 		}
 		printf("\n");
 	}
-
-	for(int i=0;i<nonTermcnt;i++)
-	{
-		computeFollow(i);
-		nonTerm[i].tablecnt=0;
-	}
-	duplication2();
-	printf("\nLIST OF FOLLOW\n");
-	for(int i=0;i<nonTermcnt;i++)
-	{
-		printf("Follow of %c :",nonTerm[i].ch);
-		for(int j=0;j<nonTerm[i].follow.size();j++)
-		{
-			printf("%c ", nonTerm[i].follow[j]);
-		}
-		printf("\n");
-	}
-
 	printf("\n\nProduction\n");
 	for(int i=0;i<prodcount;i++)
 	{
@@ -803,16 +882,10 @@ main()
 
 	calculateCanonical();
 
-	printCanItems();
+	//printCanItems();
 	
+	LALRTable();
+
 	derivation();
 
-
-	
-	//printf("\nLL(1) PARSING TABLE:\n");
-	
-	//printf("\nENTER STRING:\n");
-	//scanf("%s", &st);
-
-	
 }

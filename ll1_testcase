@@ -8,6 +8,19 @@ Y->#
 F->(E)
 F->a
 
+a+a*a+a*(a+a*a+(a)+a)
+
+
+N -> E
+E -> T X
+X -> + T X
+X -> #
+T -> F Y
+Y -> * F Y
+Y -> #
+F -> ( E )
+F -> a
+
 3
 S->AA
 A->aA
@@ -17,6 +30,12 @@ A->b
 S->aA
 A->bA
 A->#
+
+N -> S
+S -> A A
+A -> a A
+A -> b
+
 
 a+a
 E->TX
@@ -40,6 +59,7 @@ Y->*FY
 Y->#
 F->(E)
 
+9
 S->ACB
 S->CbB
 S->Ba

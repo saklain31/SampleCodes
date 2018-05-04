@@ -32,7 +32,7 @@ void calculateOutput(int idx)
 
      double err = t[idx]-yOut;
 
-     if(abs(err)<=0.002)
+     if(abs(err)<=0.001)
      {
           printf("x1=%lf x2=%lf desiredOutput=%lf output=%lf\n",x1[idx],x2[idx],t[idx],yOut);
           printf("error %lf\n",err);
